@@ -50,15 +50,19 @@ lazy_static! {
 )]
 enum ProxyType {
     #[strum(ascii_case_insensitive)]
+    #[serde(rename = "http")]
     HTTP,
 
     #[strum(ascii_case_insensitive)]
+    #[serde(rename = "https")]
     HTTPS,
 
     #[strum(ascii_case_insensitive)]
+    #[serde(rename = "socks4")]
     Socks4,
 
     #[strum(ascii_case_insensitive)]
+    #[serde(rename = "socks5")]
     Socks5,
 }
 
@@ -153,7 +157,6 @@ fn generate_yaml(file_path: &PathBuf, proxies: HashSet<Proxy>) -> () {
 
     match serde_yml::to_string(&yaml_data) {
         Ok(yaml_string) => {
-
             let mut file_path = file_path.clone();
             file_path.set_extension("yaml");
 
