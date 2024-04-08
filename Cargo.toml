@@ -1,0 +1,14 @@
+[package]
+name = "cmd-line-tools-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["ZZH <1462207500@qq.com>"]
+description = "rust code demo for rust beginers"
+repository = "https://gitee.com/finalize/rust-demo"
+keywords = ["demo", "torial"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+

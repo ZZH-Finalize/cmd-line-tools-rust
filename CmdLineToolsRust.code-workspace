@@ -1,0 +1,58 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "命令行工具-Rust"
+		}
+	],
+	"settings": {
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+            {
+                "label": "build",
+                "type": "cargo",
+                "command": "build",
+                "args": [],
+                "problemMatcher": [
+                    "$rustc"
+                ],
+                "presentation": {
+                    "clear": true,
+                    "focus": true,
+                    "panel": "shared"
+                },
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                }
+            },
+            {
+                "label": "test",
+                "type": "cargo",
+                "command": "run",
+                "args": [
+                    "--bin",
+                    "${fileBasenameNoExtension}"
+                ],
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": true,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+                "group": {
+                    "kind": "test",
+                    "isDefault": true
+                }
+            }
+        ]
+	},
+	"launch": {
+		"configurations": [],
+		"compounds": []
+	}
+}
