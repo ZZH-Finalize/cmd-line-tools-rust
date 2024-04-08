@@ -5,7 +5,11 @@
 			"name": "命令行工具-Rust"
 		}
 	],
-	"settings": {
+    "settings": {
+        "rust-analyzer.linkedProjects": [
+            ".\\Cargo.toml"
+        ],
+        "rust-analyzer.showUnlinkedFileNotification": false
 	},
 	"tasks": {
 		"version": "2.0.0",
@@ -27,6 +31,26 @@
                     "kind": "build",
                     "isDefault": true
                 }
+            },
+            {
+                "label": "build -- release",
+                "type": "cargo",
+                "command": "build",
+                "args": [
+                    "--release"
+                ],
+                "problemMatcher": [
+                    "$rustc"
+                ],
+                "presentation": {
+                    "clear": true,
+                    "focus": true,
+                    "panel": "shared"
+                },
+                // "group": {
+                //     "kind": "build",
+                //     "isDefault": true
+                // }
             },
             {
                 "label": "test",
