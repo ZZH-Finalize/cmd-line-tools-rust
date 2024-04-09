@@ -1,6 +1,6 @@
 use clap::Parser;
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_yml;
 use std::{
     collections::HashSet,
@@ -45,7 +45,6 @@ lazy_static! {
     Clone,
     Copy,
     Serialize,
-    Deserialize,
     strum_macros::Display,
     strum_macros::EnumString,
 )]
@@ -67,7 +66,7 @@ enum ProxyType {
     Socks5,
 }
 
-#[derive(Debug, Hash, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Hash, Serialize, PartialEq, Eq)]
 struct Proxy {
     name: String,
     #[serde(rename = "server")]
@@ -77,20 +76,20 @@ struct Proxy {
     ptype: ProxyType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ProxyGroups {
-    name: String,
+#[derive(Debug, Serialize)]
+struct ProxyGroups<'a> {
+    name: &'a str,
     #[serde(rename = "type")]
-    gtype: String,
-    proxies: Vec<String>,
+    gtype: &'a str,
+    proxies: Vec<&'a str>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ProxyConfig {
-    proxies: Vec<Proxy>,
+#[derive(Debug, Serialize)]
+struct ProxyConfig<'a> {
+    proxies: &'a Vec<Proxy>,
     #[serde(rename = "proxy-groups")]
-    proxy_groups: [ProxyGroups; 1],
-    rules: [String; 1],
+    proxy_groups: [ProxyGroups<'a>; 1],
+    rules: [&'a str; 1],
 }
 
 fn get_proxies(file_name: &Path) -> Vec<Proxy> {
@@ -156,22 +155,22 @@ fn write_to_file(file_path: &mut PathBuf, yaml_data: &ProxyConfig) {
     }
 }
 
-fn generate_yaml(file_path: &PathBuf, proxies: Vec<Proxy>) -> () {
-    let mut proxy_names_in_group: Vec<String> = Vec::with_capacity(proxies.len());
+fn generate_yaml(file_path: &PathBuf, proxies: &Vec<Proxy>) -> () {
+    let mut proxy_names_in_group: Vec<&str> = Vec::with_capacity(proxies.len());
 
     // add proxy names to a list
-    for proxy in &proxies {
-        proxy_names_in_group.push(proxy.name.clone());
+    for proxy in proxies {
+        proxy_names_in_group.push(&proxy.name);
     }
 
     let yaml_data = ProxyConfig {
         proxies: proxies,
         proxy_groups: [ProxyGroups {
-            name: String::from(file_path.to_str().unwrap()),
-            gtype: String::from("select"),
+            name: file_path.to_str().unwrap(),
+            gtype: "select",
             proxies: proxy_names_in_group,
         }],
-        rules: [String::from("MATCH,DIRECT")],
+        rules: ["MATCH,DIRECT"],
     };
 
     write_to_file(&mut file_path.clone(), &yaml_data);
@@ -187,11 +186,11 @@ fn main() -> ExitCode {
             for entry in fs::read_dir(fn_or_dirn).unwrap() {
                 let file_name = entry.unwrap().path();
                 if let None = file_name.extension() {
-                    generate_yaml(&file_name, get_proxies(&file_name));
+                    generate_yaml(&file_name, &get_proxies(&file_name));
                 }
             }
         } else {
-            generate_yaml(fn_or_dirn, get_proxies(fn_or_dirn));
+            generate_yaml(fn_or_dirn, &get_proxies(fn_or_dirn));
         }
     }
 
