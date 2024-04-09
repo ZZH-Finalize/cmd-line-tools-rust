@@ -89,7 +89,8 @@ struct ProxyGroups {
 struct ProxyConfig {
     proxies: Vec<Proxy>,
     #[serde(rename = "proxy-groups")]
-    proxy_groups: Vec<ProxyGroups>,
+    proxy_groups: [ProxyGroups; 1],
+    rules: [String; 1],
 }
 
 fn get_proxies(file_name: &Path) -> Vec<Proxy> {
@@ -152,19 +153,21 @@ fn write_to_file(file_path: &mut PathBuf, yaml_data: &ProxyConfig) {
 }
 
 fn generate_yaml(file_path: &PathBuf, proxies: Vec<Proxy>) -> () {
-    let mut proxy_groups = ProxyGroups {
-        name: String::from(file_path.to_str().unwrap()),
-        gtype: String::from("select"),
-        proxies: Vec::new(),
-    };
+    let mut proxy_names_in_group: Vec<String> = Vec::with_capacity(proxies.len());
 
+    // add proxy names to a list
     for proxy in &proxies {
-        proxy_groups.proxies.push(proxy.name.clone());
+        proxy_names_in_group.push(proxy.name.clone());
     }
 
     let yaml_data = ProxyConfig {
         proxies: proxies,
-        proxy_groups: vec![proxy_groups],
+        proxy_groups: [ProxyGroups {
+            name: String::from(file_path.to_str().unwrap()),
+            gtype: String::from("select"),
+            proxies: proxy_names_in_group,
+        }],
+        rules: [String::from("MATCH,DIRECT")],
     };
 
     write_to_file(&mut file_path.clone(), &yaml_data);
