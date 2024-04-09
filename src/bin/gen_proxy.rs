@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_yml;
 use std::{
     collections::HashSet,
-    fs::File,
+    fs::{self, File},
     io::{BufRead, BufReader},
     net::IpAddr,
     path::{Path, PathBuf},
@@ -99,6 +99,8 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
     if file_name.is_dir() {
         return Vec::new();
     }
+    
+    println!("\nReading proxy info from: {}", file_name.display());
 
     let file = File::open(file_name).expect("file read error");
     let reader = BufReader::new(file);
@@ -116,9 +118,9 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
             continue;
         }
 
-        let ip_addr = String::from_str(parts[0]).unwrap();
+        let ip_addr = parts[0];
         let port = u32::from_str(parts[1]).unwrap();
-        let proxy_name = ip_addr.clone() + " - " + parts[1];
+        let proxy_name = String::from_str(ip_addr).unwrap() + " - " + parts[1];
         let mut proxy_type = OPTIONS.ptype.clone();
 
         if parts.len() == 3 {
@@ -127,7 +129,7 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
 
         proxies.insert(Proxy {
             name: proxy_name,
-            ip_addr: IpAddr::from_str(&ip_addr).unwrap(),
+            ip_addr: IpAddr::from_str(ip_addr).unwrap(),
             port: port,
             ptype: proxy_type,
         });
@@ -138,6 +140,8 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
 
 fn write_to_file(file_path: &mut PathBuf, yaml_data: &ProxyConfig) {
     file_path.set_extension("yaml");
+
+    println!("Write proxy info to: {}", file_path.display());
 
     match File::create(file_path) {
         Ok(file) => {
@@ -179,13 +183,16 @@ fn main() -> ExitCode {
     }
 
     for fn_or_dirn in &OPTIONS.files_or_dirs {
-        let proxies = get_proxies(fn_or_dirn);
-        // let file = File::open(fn_or_dirn).unwrap();
-        // let yaml_data: ProxyConfig = serde_yml::from_reader(file).unwrap();
-
-        // println!("{:#?}", yaml_data);
-
-        generate_yaml(fn_or_dirn, proxies);
+        if fn_or_dirn.is_dir() {
+            for entry in fs::read_dir(fn_or_dirn).unwrap() {
+                let file_name = entry.unwrap().path();
+                if let None = file_name.extension() {
+                    generate_yaml(&file_name, get_proxies(&file_name));
+                }
+            }
+        } else {
+            generate_yaml(fn_or_dirn, get_proxies(fn_or_dirn));
+        }
     }
 
     ExitCode::SUCCESS
