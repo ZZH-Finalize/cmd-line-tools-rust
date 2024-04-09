@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_yml;
 use std::{
     collections::HashSet,
-    fs::{self, File},
+    fs::File,
     io::{BufRead, BufReader},
     net::IpAddr,
     path::{Path, PathBuf},
@@ -43,6 +43,7 @@ lazy_static! {
     PartialEq,
     Eq,
     Clone,
+    Copy,
     Serialize,
     Deserialize,
     strum_macros::Display,
@@ -91,11 +92,11 @@ struct ProxyConfig {
     proxy_groups: Vec<ProxyGroups>,
 }
 
-fn get_proxies(file_name: &Path) -> HashSet<Proxy> {
+fn get_proxies(file_name: &Path) -> Vec<Proxy> {
     let mut proxies = HashSet::new();
 
     if file_name.is_dir() {
-        return proxies;
+        return Vec::new();
     }
 
     let file = File::open(file_name).expect("file read error");
@@ -109,37 +110,48 @@ fn get_proxies(file_name: &Path) -> HashSet<Proxy> {
         }
 
         let parts: Vec<_> = line.split(':').collect();
-        let proxy_name = String::from_str(parts[0]).unwrap() + " - " + parts[1];
-
-        match parts.len() {
-            2 => {
-                proxies.insert(Proxy {
-                    name: proxy_name,
-                    ip_addr: IpAddr::from_str(parts[0]).unwrap(),
-                    port: u32::from_str(parts[1]).unwrap(),
-                    ptype: OPTIONS.ptype.clone(),
-                });
-            }
-
-            3 => {
-                proxies.insert(Proxy {
-                    name: proxy_name,
-                    ip_addr: IpAddr::from_str(parts[0]).unwrap(),
-                    port: u32::from_str(parts[1]).unwrap(),
-                    ptype: ProxyType::from_str(parts[2]).unwrap(),
-                });
-            }
-
-            _ => {
-                println!("line format error");
-            }
+        if parts.len() < 2 {
+            println!("line error: {}", line);
+            continue;
         }
+
+        let ip_addr = String::from_str(parts[0]).unwrap();
+        let port = u32::from_str(parts[1]).unwrap();
+        let proxy_name = ip_addr.clone() + " - " + parts[1];
+        let mut proxy_type = OPTIONS.ptype.clone();
+
+        if parts.len() == 3 {
+            proxy_type = ProxyType::from_str(parts[2]).unwrap();
+        }
+
+        proxies.insert(Proxy {
+            name: proxy_name,
+            ip_addr: IpAddr::from_str(&ip_addr).unwrap(),
+            port: port,
+            ptype: proxy_type,
+        });
     }
 
-    proxies
+    Vec::from_iter(proxies)
 }
 
-fn generate_yaml(file_path: &PathBuf, proxies: HashSet<Proxy>) -> () {
+fn write_to_file(file_path: &mut PathBuf, yaml_data: &ProxyConfig) {
+    file_path.set_extension("yaml");
+
+    match File::create(file_path) {
+        Ok(file) => {
+            if let Err(e) = serde_yml::to_writer(file, yaml_data) {
+                println!("error occurs when write data to file: {}", e);
+            }
+        }
+
+        Err(e) => {
+            println!("error occurs when create file: {}", e);
+        }
+    }
+}
+
+fn generate_yaml(file_path: &PathBuf, proxies: Vec<Proxy>) -> () {
     let mut proxy_groups = ProxyGroups {
         name: String::from(file_path.to_str().unwrap()),
         gtype: String::from("select"),
@@ -151,27 +163,11 @@ fn generate_yaml(file_path: &PathBuf, proxies: HashSet<Proxy>) -> () {
     }
 
     let yaml_data = ProxyConfig {
-        proxies: Vec::from_iter(proxies),
+        proxies: proxies,
         proxy_groups: vec![proxy_groups],
     };
 
-    match serde_yml::to_string(&yaml_data) {
-        Ok(yaml_string) => {
-            let mut file_path = file_path.clone();
-            file_path.set_extension("yaml");
-
-            match fs::write(file_path, yaml_string) {
-                Ok(..) => {}
-                Err(e) => {
-                    println!("error occurs when writing data to file: {}", e);
-                }
-            }
-        }
-
-        Err(e) => {
-            println!("generate yaml string error: {}", e);
-        }
-    }
+    write_to_file(&mut file_path.clone(), &yaml_data);
 }
 
 fn main() -> ExitCode {
@@ -180,7 +176,7 @@ fn main() -> ExitCode {
     }
 
     for fn_or_dirn in &OPTIONS.files_or_dirs {
-        let proxies = get_proxies(&fn_or_dirn);
+        let proxies = get_proxies(fn_or_dirn);
         // let file = File::open(fn_or_dirn).unwrap();
         // let yaml_data: ProxyConfig = serde_yml::from_reader(file).unwrap();
 
