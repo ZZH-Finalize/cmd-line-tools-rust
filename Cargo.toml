@@ -12,6 +12,7 @@ keywords = ["demo", "torial"]
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
 lazy_static = "1.4.0"
+reqwest = { version = "0.12.3", features = ["blocking"] }
 serde = { version = "1.0.197", features = ["serde_derive", "derive"] }
 serde_yml = "0.0.4"
 strum = { version = "0.26.2", features = ["derive"] }

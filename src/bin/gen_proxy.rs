@@ -98,14 +98,16 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
     if file_name.is_dir() {
         return Vec::new();
     }
-    
+
     println!("\nReading proxy info from: {}", file_name.display());
 
     let file = File::open(file_name).expect("file read error");
     let reader = BufReader::new(file);
+    let mut line_cnt = 0;
 
     for line in reader.lines() {
         let line = line.unwrap();
+        line_cnt = line_cnt + 1;
 
         if OPTIONS.verbose_level > 2 {
             println!("{}", line);
@@ -128,7 +130,13 @@ fn get_proxies(file_name: &Path) -> Vec<Proxy> {
 
         proxies.insert(Proxy {
             name: proxy_name,
-            ip_addr: IpAddr::from_str(ip_addr).unwrap(),
+            ip_addr: match IpAddr::from_str(ip_addr) {
+                Ok(addr) => addr,
+                Err(..) => {
+                    println!("ip address parse error at line: {}", line_cnt);
+                    continue;
+                }
+            },
             port: port,
             ptype: proxy_type,
         });
